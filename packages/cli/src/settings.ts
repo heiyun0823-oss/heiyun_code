@@ -52,7 +52,8 @@ export function loadSettings(): SettingsData | null {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
     }
-    // 文件存在但损坏
+    // 文件存在但损坏，输出警告
+    console.error(`警告: ${filePath} 文件损坏，已忽略`, err instanceof Error ? err.message : "");
     return null;
   }
 }
@@ -79,7 +80,7 @@ export async function fetchModels(
 
   // 合并外部 signal
   if (signal) {
-    signal.addEventListener("abort", () => controller.abort());
+    signal.addEventListener("abort", () => controller.abort(), { once: true });
   }
 
   let response: Response;
@@ -97,7 +98,9 @@ export async function fetchModels(
   }
 
   if (response.status === 401 || response.status === 403) {
-    throw new Error("INVALID_API_KEY");
+    const err = new Error("INVALID_API_KEY");
+    (err as any).code = "INVALID_API_KEY";
+    throw err;
   }
 
   if (!response.ok) {
