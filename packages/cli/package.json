@@ -1,0 +1,36 @@
+{
+  "name": "@heiyun/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "heiyun": "./bin/heiyun.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "node --test src/**/*.test.ts",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@heiyun/ai": "*",
+    "@heiyun/agent-core": "*",
+    "@heiyun/tools": "*",
+    "commander": "^12.0.0",
+    "ink": "^5.0.0",
+    "react": "^18.3.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.0"
+  }
+}

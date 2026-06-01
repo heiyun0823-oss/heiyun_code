@@ -1,0 +1,24 @@
+{
+  "name": "@heiyun/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "node --test --experimental-test-coverage src/**/*.test.ts",
+    "dev": "tsup --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "8.5.1",
+    "typescript": "^5.4.0"
+  }
+}

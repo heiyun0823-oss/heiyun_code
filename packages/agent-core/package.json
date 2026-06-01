@@ -1,0 +1,28 @@
+{
+  "name": "@heiyun/agent-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "node --test src/**/*.test.ts",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@heiyun/ai": "*",
+    "@heiyun/tools": "*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}
