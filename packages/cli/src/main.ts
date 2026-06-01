@@ -71,7 +71,7 @@ if (config.sessionId) {
 const TuiWrapper: React.FC = () => {
   const [currentModel, setCurrentModel] = useState(config.model);
   const [messages, setMessages] = useState<SessionNode[]>(
-    session.getMessages()
+    [...session.getMessages()]
   );
   const [streamingText, setStreamingText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -99,10 +99,12 @@ const TuiWrapper: React.FC = () => {
               setStreamingText((prev) => prev + text);
             },
             onToolCall: () => {
-              // UI updates when messages change
+              // 同步 messages 状态，确保工具调用信息及时显示
+              setMessages([...session.getMessages()]);
             },
             onToolResult: () => {
-              // UI updates when messages change
+              // 同步 messages 状态，确保工具调用结果及时显示
+              setMessages([...session.getMessages()]);
             },
           }
         );
