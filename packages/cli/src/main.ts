@@ -126,6 +126,10 @@ const TuiWrapper: React.FC = () => {
     streamingText,
     isProcessing,
     onSubmit: handleSubmit,
+    onModelChange: (newModel: string) => {
+      config.model = newModel;
+      provider.setModel(newModel);
+    },
   });
 };
 

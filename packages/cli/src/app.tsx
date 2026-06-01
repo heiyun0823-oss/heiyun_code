@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Box } from "ink";
 import type { SessionNode } from "@heiyun/agent-core";
 import { StatusBar } from "./components/status-bar.js";
 import { ChatView } from "./components/chat-view.js";
 import { InputBox } from "./components/input-box.js";
+import { LoginPanel } from "./slash-commands/login.js";
+import { ModelPanel } from "./slash-commands/model.js";
+
+type SlashMode = "chat" | "login" | "model";
 
 interface AppProps {
   sessionId: string;
@@ -13,6 +17,7 @@ interface AppProps {
   streamingText: string;
   isProcessing: boolean;
   onSubmit: (input: string) => void;
+  onModelChange: (newModel: string) => void;
 }
 
 export const App: React.FC<AppProps> = ({
@@ -23,12 +28,52 @@ export const App: React.FC<AppProps> = ({
   streamingText,
   isProcessing,
   onSubmit,
+  onModelChange,
 }) => {
+  const [slashMode, setSlashMode] = useState<SlashMode>("chat");
+
+  const handleSubmit = (input: string) => {
+    const trimmed = input.trim();
+
+    // 拦截 /command
+    if (trimmed === "/login") {
+      setSlashMode("login");
+      return;
+    }
+    if (trimmed === "/model") {
+      setSlashMode("model");
+      return;
+    }
+
+    // 其他 / 开头的输入作为普通消息发送
+    onSubmit(trimmed);
+  };
+
   return (
     <Box flexDirection="column" padding={0}>
       <StatusBar sessionId={sessionId} model={model} workdir={workdir} />
-      <ChatView messages={messages} streamingText={streamingText} />
-      <InputBox onSubmit={onSubmit} disabled={isProcessing} />
+
+      {slashMode === "chat" && (
+        <>
+          <ChatView messages={messages} streamingText={streamingText} />
+          <InputBox onSubmit={handleSubmit} disabled={isProcessing} />
+        </>
+      )}
+
+      {slashMode === "login" && (
+        <LoginPanel onClose={() => setSlashMode("chat")} />
+      )}
+
+      {slashMode === "model" && (
+        <ModelPanel
+          onClose={(newModel) => {
+            if (newModel) {
+              onModelChange(newModel);
+            }
+            setSlashMode("chat");
+          }}
+        />
+      )}
     </Box>
   );
 };

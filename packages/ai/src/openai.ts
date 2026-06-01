@@ -21,6 +21,14 @@ export class OpenAIProvider implements LLMProvider {
     this.temperature = opts?.temperature ?? 0.7;
   }
 
+  getModel(): string {
+    return this.model;
+  }
+
+  setModel(model: string): void {
+    this.model = model;
+  }
+
   async *generateStream(req: GenerateRequest): AsyncGenerator<GenerateChunk> {
     const url = `${this.apiBase}/chat/completions`;
 
