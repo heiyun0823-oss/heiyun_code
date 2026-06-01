@@ -4,3 +4,6 @@ dist/
 *.tsbuildinfo
 .superpowers/
 docs/
+CLAUDE.md
+.codegraph/
+heiyun_code.md

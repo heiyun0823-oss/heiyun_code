@@ -69,6 +69,7 @@ if (config.sessionId) {
 
 // Main TUI wrapper component
 const TuiWrapper: React.FC = () => {
+  const [currentModel, setCurrentModel] = useState(config.model);
   const [messages, setMessages] = useState<SessionNode[]>(
     session.getMessages()
   );
@@ -87,7 +88,7 @@ const TuiWrapper: React.FC = () => {
           toolRegistry,
           input,
           {
-            model: config.model,
+            model: currentModel,
             maxRounds: config.maxRounds,
             maxTokens: 4096,
             temperature: config.temperature,
@@ -115,19 +116,19 @@ const TuiWrapper: React.FC = () => {
         setIsProcessing(false);
       }
     },
-    [config, provider, toolRegistry]
+    [currentModel, config, provider, toolRegistry]
   );
 
   return React.createElement(App, {
     sessionId: session.id,
-    model: config.model,
+    model: currentModel,
     workdir: config.workdir,
     messages,
     streamingText,
     isProcessing,
     onSubmit: handleSubmit,
     onModelChange: (newModel: string) => {
-      config.model = newModel;
+      setCurrentModel(newModel);
       provider.setModel(newModel);
     },
   });

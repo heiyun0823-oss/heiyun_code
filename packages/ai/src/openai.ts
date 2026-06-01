@@ -29,6 +29,16 @@ export class OpenAIProvider implements LLMProvider {
     this.model = model;
   }
 
+  /** 运行时更新 API Key */
+  setApiKey(apiKey: string): void {
+    this.apiKey = apiKey;
+  }
+
+  /** 运行时更新 API Base */
+  setApiBase(apiBase: string): void {
+    this.apiBase = apiBase;
+  }
+
   async *generateStream(req: GenerateRequest): AsyncGenerator<GenerateChunk> {
     const url = `${this.apiBase}/chat/completions`;
 
