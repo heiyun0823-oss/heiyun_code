@@ -14,9 +14,8 @@ export const StatusBar = React.memo<StatusBarProps>(({
 }) => {
   const shortId = sessionId.slice(0, 8);
   return (
-    <Box>
-      <Text bold color="#e94560" wrap="truncate-end">⚡ Heiyun Code v0.1.0</Text>
-      <Text color="#888" wrap="truncate-end">  会话: {shortId} | 模型: {model} | {workdir}</Text>
+    <Box marginTop={2}>
+      <Text color="#888" wrap="truncate-end">会话: {shortId} | 模型: {model} | {workdir}</Text>
     </Box>
   );
 });

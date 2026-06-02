@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { render } from "ink";
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useMemo } from "react";
 import { loadConfig } from "./config.js";
 import { App } from "./app.jsx";
 import { Session, ToolRegistry, agentLoop, Logger } from "@heiyun/agent-core";
@@ -209,6 +209,11 @@ const TuiWrapper: React.FC = () => {
     []
   );
 
+  const handleModelChange = useCallback((newModel: string) => {
+    setCurrentModel(newModel);
+    provider.setModel(newModel);
+  }, []);
+
   return React.createElement(App, {
     sessionId: session.id,
     model: currentModel,
@@ -218,10 +223,7 @@ const TuiWrapper: React.FC = () => {
     streamingText,
     isProcessing,
     onSubmit: handleSubmit,
-    onModelChange: (newModel: string) => {
-      setCurrentModel(newModel);
-      provider.setModel(newModel);
-    },
+    onModelChange: handleModelChange,
     onNewSession: handleNewSession,
     onResumeSession: handleResumeSession,
   });

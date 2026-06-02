@@ -73,17 +73,19 @@ export function getPixelColor(
 
 interface LogoProps {
   speed?: number;
+  animate?: boolean;
 }
 
-export const Logo = React.memo<LogoProps>(({ speed = 200 }) => {
+export const Logo = React.memo<LogoProps>(({ speed = 200, animate = true }) => {
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
+    if (!animate) return;
     const id = setInterval(() => {
       setOffset((prev) => prev + 1);
     }, speed);
     return () => clearInterval(id);
-  }, [speed]);
+  }, [speed, animate]);
 
   return (
     <Box flexDirection="column" justifyContent="center" alignItems="center">

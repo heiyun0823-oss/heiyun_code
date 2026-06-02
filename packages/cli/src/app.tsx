@@ -25,7 +25,7 @@ interface AppProps {
   onResumeSession: (sessionId: string) => void;
 }
 
-export const App: React.FC<AppProps> = ({
+export const App: React.FC<AppProps> = React.memo(({
   sessionId,
   model,
   workdir,
@@ -67,8 +67,10 @@ export const App: React.FC<AppProps> = ({
 
   return (
     <Box flexDirection="column" padding={0}>
-      <Logo />
-      <StatusBar sessionId={sessionId} model={model} workdir={workdir} />
+      <Box flexDirection="row">
+        <Logo animate={isProcessing} />
+        <StatusBar sessionId={sessionId} model={model} workdir={workdir} />
+      </Box>
 
 
       {slashMode === "chat" && (
@@ -105,4 +107,4 @@ export const App: React.FC<AppProps> = ({
       )}
     </Box>
   );
-};
+});
