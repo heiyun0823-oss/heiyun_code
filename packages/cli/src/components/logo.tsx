@@ -10,6 +10,11 @@ export const RAINBOW = [
   "#cc44ff",
 ];
 
+/** 根据字符位置和当前偏移返回对应的彩虹色 */
+export function getRainbowColor(charIndex: number, offset: number): string {
+  return RAINBOW[(charIndex + offset) % RAINBOW.length];
+}
+
 interface LogoProps {
   text?: string;
   speed?: number;
@@ -25,7 +30,7 @@ export const Logo: React.FC<LogoProps> = ({ text = "HEIYUN", speed = 200 }) => {
     return () => clearInterval(id);
   }, [speed]);
 
-  const chars = text.split("");
+  const chars = [...text];
   const innerWidth = 2 * text.length + 3;
   const topBorder = `╔${"═".repeat(innerWidth)}╗`;
   const bottomBorder = `╚${"═".repeat(innerWidth)}╝`;
@@ -36,9 +41,9 @@ export const Logo: React.FC<LogoProps> = ({ text = "HEIYUN", speed = 200 }) => {
       <Box>
         <Text>║  </Text>
         {chars.map((ch, i) => {
-          const colorIndex = (i + offset) % RAINBOW.length;
+          const color = getRainbowColor(i, offset);
           return (
-            <Text key={i} color={RAINBOW[colorIndex]}>
+            <Text key={i} color={color}>
               {ch}{" "}
             </Text>
           );
