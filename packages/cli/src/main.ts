@@ -121,10 +121,26 @@ const TuiWrapper: React.FC = () => {
     [currentModel, config, provider, toolRegistry]
   );
 
+  const handleNewSession = useCallback(() => {
+    session = new Session(config.sessionDir);
+    setMessages([]);
+  }, []);
+
+  const handleResumeSession = useCallback(
+    async (id: string) => {
+      const { join } = await import("node:path");
+      const sessionPath = join(config.sessionDir, `${id}.jsonl`);
+      session = Session.load(sessionPath);
+      setMessages([...session.getMessages()]);
+    },
+    []
+  );
+
   return React.createElement(App, {
     sessionId: session.id,
     model: currentModel,
     workdir: config.workdir,
+    sessionDir: config.sessionDir,
     messages,
     streamingText,
     isProcessing,
@@ -133,6 +149,8 @@ const TuiWrapper: React.FC = () => {
       setCurrentModel(newModel);
       provider.setModel(newModel);
     },
+    onNewSession: handleNewSession,
+    onResumeSession: handleResumeSession,
   });
 };
 
