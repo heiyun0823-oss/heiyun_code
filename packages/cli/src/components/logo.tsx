@@ -26,7 +26,7 @@ export const Logo: React.FC<LogoProps> = ({ text = "HEIYUN", speed = 200 }) => {
   }, [speed]);
 
   const chars = text.split("");
-  const innerWidth = text.length + 4;
+  const innerWidth = 2 * text.length + 3;
   const topBorder = `╔${"═".repeat(innerWidth)}╗`;
   const bottomBorder = `╚${"═".repeat(innerWidth)}╝`;
 
