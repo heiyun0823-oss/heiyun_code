@@ -4,7 +4,7 @@ import { render } from "ink";
 import React, { useState, useCallback } from "react";
 import { loadConfig } from "./config.js";
 import { App } from "./app.jsx";
-import { Session, ToolRegistry, agentLoop } from "@heiyun/agent-core";
+import { Session, ToolRegistry, agentLoop, Logger } from "@heiyun/agent-core";
 import { OpenAIProvider } from "@heiyun/ai";
 import type { SessionNode } from "@heiyun/agent-core";
 
@@ -50,7 +50,9 @@ const provider = new OpenAIProvider({
   model: config.model,
 });
 
-const toolRegistry = new ToolRegistry();
+// 创建日志记录器，方便排查 AI 工具调用错误
+const logger = new Logger();
+const toolRegistry = new ToolRegistry(logger);
 
 let session: Session;
 if (config.sessionId) {
@@ -59,12 +61,16 @@ if (config.sessionId) {
   const sessionPath = join(config.sessionDir, `${config.sessionId}.jsonl`);
   if (existsSync(sessionPath)) {
     session = Session.load(sessionPath);
+    logger.setSessionId(session.id);
+    logger.info("恢复会话", { sessionId: session.id });
   } else {
     console.error(`会话 ${config.sessionId} 不存在。`);
     process.exit(1);
   }
 } else {
   session = new Session(config.sessionDir);
+  logger.setSessionId(session.id);
+  logger.info("新建会话", { sessionId: session.id, workdir: config.workdir, model: config.model });
 }
 
 // Main TUI wrapper component
@@ -98,20 +104,35 @@ const TuiWrapper: React.FC = () => {
             onText: (text) => {
               setStreamingText((prev) => prev + text);
             },
-            onToolCall: () => {
-              // 同步 messages 状态，确保工具调用信息及时显示
+            onToolCall: (tc) => {
+              // 工具调用开始时：将当前流式文本固定到消息列表，重置流式状态
+              logger.info("AI 请求调用工具", {
+                tool: tc.function.name,
+                argsPreview: tc.function.arguments.slice(0, 200),
+              });
               setMessages([...session.getMessages()]);
+              setStreamingText("");
             },
             onToolResult: () => {
               // 同步 messages 状态，确保工具调用结果及时显示
               setMessages([...session.getMessages()]);
             },
-          }
+          },
+          logger
         );
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : String(err);
-        setStreamingText(`\n[错误] ${msg}`);
+        // 记录循环错误到日志
+        logger.error("Agent loop 异常", {
+          error: msg,
+          sessionId: session.id,
+        });
+        // 将错误作为系统消息追加到会话中，确保持久可见
+        session.append({
+          role: "assistant",
+          content: `[错误] ${msg}`,
+        });
       } finally {
         setMessages([...session.getMessages()]);
         setStreamingText("");
@@ -123,6 +144,8 @@ const TuiWrapper: React.FC = () => {
 
   const handleNewSession = useCallback(() => {
     session = new Session(config.sessionDir);
+    logger.setSessionId(session.id);
+    logger.info("新建会话", { sessionId: session.id, workdir: config.workdir });
     setMessages([]);
   }, []);
 
@@ -131,6 +154,8 @@ const TuiWrapper: React.FC = () => {
       const { join } = await import("node:path");
       const sessionPath = join(config.sessionDir, `${id}.jsonl`);
       session = Session.load(sessionPath);
+      logger.setSessionId(session.id);
+      logger.info("切换会话", { sessionId: session.id });
       setMessages([...session.getMessages()]);
     },
     []

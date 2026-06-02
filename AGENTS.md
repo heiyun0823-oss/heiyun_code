@@ -213,4 +213,6 @@ Every filesystem tool runs paths through `resolveSafePath()` which:
 | cli | `settings.test.ts` | 6 (load, save, path, registry, fetchModels) |
 
 ###
-每次改动完帮我提交bug
+每次改动完帮我提交git
+###
+用中文和用户对话

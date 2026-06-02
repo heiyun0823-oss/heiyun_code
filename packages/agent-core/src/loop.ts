@@ -3,6 +3,7 @@ import type { SessionNode, LoopOptions } from "./types.js";
 import { Session } from "./session.js";
 import { ToolRegistry } from "./tool-registry.js";
 import { SYSTEM_PROMPT } from "./system-prompt.js";
+import type { Logger } from "./logger.js";
 
 export interface LoopCallbacks {
   onText?: (text: string) => void;
@@ -40,12 +41,15 @@ export async function agentLoop(
   userInput: string,
   options: LoopOptions,
   workdir: string,
-  callbacks?: LoopCallbacks
+  callbacks?: LoopCallbacks,
+  logger?: Logger
 ): Promise<string> {
   session.append({ role: "user", content: userInput });
+  logger?.info("Agent loop 开始", { sessionId: session.id, workdir });
 
   for (let round = 1; round <= options.maxRounds; round++) {
     if (options.signal?.aborted) {
+      logger?.warn("用户中断");
       throw new Error("用户中断");
     }
 
@@ -88,6 +92,7 @@ export async function agentLoop(
         role: "assistant",
         content: assistantContent || null,
       });
+      logger?.info("Agent 回复完成（无工具调用）", { round, contentLen: assistantContent.length });
       return assistantContent;
     }
 
@@ -119,5 +124,7 @@ export async function agentLoop(
     }
   }
 
-  throw new Error(`Agent loop 已超过最大轮次 (${options.maxRounds})，会话已保存。`);
+  const maxRoundsErr = `Agent loop 已超过最大轮次 (${options.maxRounds})，会话已保存。`;
+  logger?.error(maxRoundsErr, { sessionId: session.id });
+  throw new Error(maxRoundsErr);
 }

@@ -1,6 +1,7 @@
 import type { ToolCall, ToolDefinition, ToolResult } from "@heiyun/ai";
 import type { ToolContext } from "@heiyun/tools";
 import { allTools } from "@heiyun/tools";
+import type { Logger } from "./logger.js";
 
 export interface ToolHandler {
   definition: ToolDefinition;
@@ -9,9 +10,15 @@ export interface ToolHandler {
 
 export class ToolRegistry {
   private tools = new Map<string, ToolHandler>();
+  private logger: Logger | undefined;
 
-  constructor() {
+  constructor(logger?: Logger) {
+    this.logger = logger;
     this.registerBuiltins();
+  }
+
+  setLogger(logger: Logger): void {
+    this.logger = logger;
   }
 
   private registerBuiltins(): void {
@@ -31,24 +38,42 @@ export class ToolRegistry {
   async execute(toolCall: ToolCall, ctx: ToolContext): Promise<ToolResult> {
     const handler = this.tools.get(toolCall.function.name);
     if (!handler) {
-      return {
+      const errResult: ToolResult = {
         success: false,
         output: "",
         error: `未知工具: ${toolCall.function.name}`,
       };
+      this.logger?.logToolResult(toolCall.function.name, errResult, 0);
+      return errResult;
     }
 
     let params: Record<string, unknown>;
     try {
       params = JSON.parse(toolCall.function.arguments);
     } catch {
-      return {
+      const errResult: ToolResult = {
         success: false,
         output: "",
         error: `工具参数 JSON 解析失败: ${toolCall.function.arguments}`,
       };
+      this.logger?.logToolResult(toolCall.function.name, errResult, 0);
+      return errResult;
     }
 
-    return handler.execute(params, ctx);
+    // 记录工具调用
+    this.logger?.logToolCall(
+      handler.definition.name,
+      params,
+      ctx.workdir
+    );
+
+    const startTime = Date.now();
+    const result = await handler.execute(params, ctx);
+    const durationMs = Date.now() - startTime;
+
+    // 记录工具结果
+    this.logger?.logToolResult(handler.definition.name, result, durationMs);
+
+    return result;
   }
 }
