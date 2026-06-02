@@ -68,11 +68,12 @@ export const App: React.FC<AppProps> = ({
     <Box flexDirection="column" padding={0}>
       <StatusBar sessionId={sessionId} model={model} workdir={workdir} />
 
+
       {slashMode === "chat" && (
-        <>
+        <Box flexDirection="column">
           <ChatView messages={messages} streamingText={streamingText} />
           <InputBox onSubmit={handleSubmit} disabled={isProcessing} />
-        </>
+        </Box>
       )}
 
       {slashMode === "login" && (
