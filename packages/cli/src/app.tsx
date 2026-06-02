@@ -7,6 +7,7 @@ import { InputBox } from "./components/input-box.js";
 import { LoginPanel } from "./slash-commands/login.js";
 import { ModelPanel } from "./slash-commands/model.js";
 import { ResumePanel } from "./slash-commands/resume.js";
+import { Logo } from "./components/logo.js";
 
 type SlashMode = "chat" | "login" | "model" | "resume";
 
@@ -66,6 +67,7 @@ export const App: React.FC<AppProps> = ({
 
   return (
     <Box flexDirection="column" padding={0}>
+      <Logo />
       <StatusBar sessionId={sessionId} model={model} workdir={workdir} />
 
 
