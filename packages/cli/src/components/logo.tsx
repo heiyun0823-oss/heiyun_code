@@ -76,6 +76,34 @@ interface LogoProps {
 }
 
 export const Logo: React.FC<LogoProps> = ({ speed = 200 }) => {
-  // Will be implemented in full in next task; placeholder for now
-  return <Box flexDirection="column"></Box>;
+  const [offset, setOffset] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setOffset((prev) => prev + 1);
+    }, speed);
+    return () => clearInterval(id);
+  }, [speed]);
+
+  return (
+    <Box flexDirection="column" justifyContent="center" alignItems="center">
+      {CLOUD_SHAPE.map((row, rowIdx) => (
+        <Box key={rowIdx}>
+          {row.map((depth, colIdx) => {
+            if (depth === 0) {
+              return (
+                <Text key={colIdx}>{"  "}</Text>
+              );
+            }
+            const color = getPixelColor(rowIdx, colIdx, offset);
+            return (
+              <Text key={colIdx} color={color ?? undefined}>
+                {"██"}
+              </Text>
+            );
+          })}
+        </Box>
+      ))}
+    </Box>
+  );
 };
