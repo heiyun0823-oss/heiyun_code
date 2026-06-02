@@ -7,7 +7,7 @@ interface StatusBarProps {
   workdir: string;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({
+export const StatusBar = React.memo<StatusBarProps>(({
   sessionId,
   model,
   workdir,
@@ -19,4 +19,4 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       <Text color="#888" wrap="truncate-end">  会话: {shortId} | 模型: {model} | {workdir}</Text>
     </Box>
   );
-};
+});

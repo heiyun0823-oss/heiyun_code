@@ -75,7 +75,7 @@ interface LogoProps {
   speed?: number;
 }
 
-export const Logo: React.FC<LogoProps> = ({ speed = 200 }) => {
+export const Logo = React.memo<LogoProps>(({ speed = 200 }) => {
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
@@ -106,4 +106,4 @@ export const Logo: React.FC<LogoProps> = ({ speed = 200 }) => {
       ))}
     </Box>
   );
-};
+});

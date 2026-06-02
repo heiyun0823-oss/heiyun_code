@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { render } from "ink";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { loadConfig } from "./config.js";
 import { App } from "./app.jsx";
 import { Session, ToolRegistry, agentLoop, Logger } from "@heiyun/agent-core";
@@ -73,6 +73,9 @@ if (config.sessionId) {
   logger.info("新建会话", { sessionId: session.id, workdir: config.workdir, model: config.model });
 }
 
+// Throttle streaming text updates to ~30fps to reduce full-tree re-renders
+const STREAM_THROTTLE_MS = 33;
+
 // Main TUI wrapper component
 const TuiWrapper: React.FC = () => {
   const [currentModel, setCurrentModel] = useState(config.model);
@@ -82,10 +85,51 @@ const TuiWrapper: React.FC = () => {
   const [streamingText, setStreamingText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Throttled streaming: accumulate tokens in a ref, flush to state at ~30fps
+  const streamBufferRef = useRef("");
+  const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushStreamBuffer = useCallback(() => {
+    const buffered = streamBufferRef.current;
+    if (buffered) {
+      streamBufferRef.current = "";
+      setStreamingText((prev) => prev + buffered);
+    }
+    streamTimerRef.current = null;
+  }, []);
+
+  const appendStreamText = useCallback(
+    (text: string) => {
+      streamBufferRef.current += text;
+      if (!streamTimerRef.current) {
+        streamTimerRef.current = setTimeout(flushStreamBuffer, STREAM_THROTTLE_MS);
+      }
+    },
+    [flushStreamBuffer]
+  );
+
+  // Flush any remaining buffered text immediately (for onToolCall / loop end)
+  const flushNow = useCallback(() => {
+    if (streamTimerRef.current) {
+      clearTimeout(streamTimerRef.current);
+      streamTimerRef.current = null;
+    }
+    const buffered = streamBufferRef.current;
+    if (buffered) {
+      streamBufferRef.current = "";
+      setStreamingText((prev) => prev + buffered);
+    }
+  }, []);
+
   const handleSubmit = useCallback(
     async (input: string) => {
       setIsProcessing(true);
       setStreamingText("");
+      streamBufferRef.current = "";
+      if (streamTimerRef.current) {
+        clearTimeout(streamTimerRef.current);
+        streamTimerRef.current = null;
+      }
 
       try {
         await agentLoop(
@@ -102,19 +146,21 @@ const TuiWrapper: React.FC = () => {
           config.workdir,
           {
             onText: (text) => {
-              setStreamingText((prev) => prev + text);
+              appendStreamText(text);
             },
             onToolCall: (tc) => {
-              // 工具调用开始时：将当前流式文本固定到消息列表，重置流式状态
+              // 工具调用开始时：先刷新流式缓冲区，将文本固定到消息列表，重置流式状态
               logger.info("AI 请求调用工具", {
                 tool: tc.function.name,
                 argsPreview: tc.function.arguments.slice(0, 200),
               });
+              flushNow();
               setMessages([...session.getMessages()]);
               setStreamingText("");
             },
             onToolResult: () => {
               // 同步 messages 状态，确保工具调用结果及时显示
+              flushNow();
               setMessages([...session.getMessages()]);
             },
           },
@@ -129,17 +175,19 @@ const TuiWrapper: React.FC = () => {
           sessionId: session.id,
         });
         // 将错误作为系统消息追加到会话中，确保持久可见
+        flushNow();
         session.append({
           role: "assistant",
           content: `[错误] ${msg}`,
         });
       } finally {
+        flushNow();
         setMessages([...session.getMessages()]);
         setStreamingText("");
         setIsProcessing(false);
       }
     },
-    [currentModel, config, provider, toolRegistry]
+    [currentModel, config, provider, toolRegistry, appendStreamText, flushNow]
   );
 
   const handleNewSession = useCallback(() => {

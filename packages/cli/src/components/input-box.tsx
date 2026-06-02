@@ -19,7 +19,7 @@ interface InputBoxProps {
   disabled: boolean;
 }
 
-export const InputBox: React.FC<InputBoxProps> = ({
+export const InputBox = React.memo<InputBoxProps>(({
   onSubmit,
   disabled,
 }) => {
@@ -102,4 +102,4 @@ export const InputBox: React.FC<InputBoxProps> = ({
       </Box>
     </Box>
   );
-};
+});
