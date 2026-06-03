@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { render } from "ink";
-import React, { useState, useCallback, useRef, useMemo } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { loadConfig } from "./config.js";
 import { App } from "./app.jsx";
 import { Session, ToolRegistry, agentLoop, Logger } from "@heiyun/agent-core";
@@ -76,60 +76,31 @@ if (config.sessionId) {
 // Throttle streaming text updates to ~30fps to reduce full-tree re-renders
 const STREAM_THROTTLE_MS = 33;
 
+/** Imperative handle that ChatView exposes so TuiWrapper can push text
+ *  without re-rendering the whole component tree on every token. */
+export interface StreamHandle {
+  append(text: string): void;
+  flush(): void;
+  reset(): void;
+}
+
 // Main TUI wrapper component
 const TuiWrapper: React.FC = () => {
   const [currentModel, setCurrentModel] = useState(config.model);
   const [messages, setMessages] = useState<SessionNode[]>(
     [...session.getMessages()]
   );
-  const [streamingText, setStreamingText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Throttled streaming: accumulate tokens in a ref, flush to state at ~30fps
-  const streamBufferRef = useRef("");
-  const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const flushStreamBuffer = useCallback(() => {
-    const buffered = streamBufferRef.current;
-    if (buffered) {
-      streamBufferRef.current = "";
-      setStreamingText((prev) => prev + buffered);
-    }
-    streamTimerRef.current = null;
-  }, []);
-
-  const appendStreamText = useCallback(
-    (text: string) => {
-      streamBufferRef.current += text;
-      if (!streamTimerRef.current) {
-        streamTimerRef.current = setTimeout(flushStreamBuffer, STREAM_THROTTLE_MS);
-      }
-    },
-    [flushStreamBuffer]
-  );
-
-  // Flush any remaining buffered text immediately (for onToolCall / loop end)
-  const flushNow = useCallback(() => {
-    if (streamTimerRef.current) {
-      clearTimeout(streamTimerRef.current);
-      streamTimerRef.current = null;
-    }
-    const buffered = streamBufferRef.current;
-    if (buffered) {
-      streamBufferRef.current = "";
-      setStreamingText((prev) => prev + buffered);
-    }
-  }, []);
+  // Ref-based streaming: ChatView registers its imperative handle here.
+  // When TuiWrapper calls streamHandleRef.current.append(text), only ChatView
+  // (and its StreamingTextDisplay child) re-renders — not the whole App tree.
+  const streamHandleRef = useRef<StreamHandle | null>(null);
 
   const handleSubmit = useCallback(
     async (input: string) => {
       setIsProcessing(true);
-      setStreamingText("");
-      streamBufferRef.current = "";
-      if (streamTimerRef.current) {
-        clearTimeout(streamTimerRef.current);
-        streamTimerRef.current = null;
-      }
+      streamHandleRef.current?.reset();
 
       try {
         await agentLoop(
@@ -146,7 +117,7 @@ const TuiWrapper: React.FC = () => {
           config.workdir,
           {
             onText: (text) => {
-              appendStreamText(text);
+              streamHandleRef.current?.append(text);
             },
             onToolCall: (tc) => {
               // 工具调用开始时：先刷新流式缓冲区，将文本固定到消息列表，重置流式状态
@@ -154,13 +125,13 @@ const TuiWrapper: React.FC = () => {
                 tool: tc.function.name,
                 argsPreview: tc.function.arguments.slice(0, 200),
               });
-              flushNow();
+              streamHandleRef.current?.flush();
+              streamHandleRef.current?.reset();
               setMessages([...session.getMessages()]);
-              setStreamingText("");
             },
             onToolResult: () => {
               // 同步 messages 状态，确保工具调用结果及时显示
-              flushNow();
+              streamHandleRef.current?.flush();
               setMessages([...session.getMessages()]);
             },
           },
@@ -175,19 +146,19 @@ const TuiWrapper: React.FC = () => {
           sessionId: session.id,
         });
         // 将错误作为系统消息追加到会话中，确保持久可见
-        flushNow();
+        streamHandleRef.current?.flush();
         session.append({
           role: "assistant",
           content: `[错误] ${msg}`,
         });
       } finally {
-        flushNow();
+        streamHandleRef.current?.flush();
+        streamHandleRef.current?.reset();
         setMessages([...session.getMessages()]);
-        setStreamingText("");
         setIsProcessing(false);
       }
     },
-    [currentModel, config, provider, toolRegistry, appendStreamText, flushNow]
+    [currentModel, config, provider, toolRegistry]
   );
 
   const handleNewSession = useCallback(() => {
@@ -220,8 +191,8 @@ const TuiWrapper: React.FC = () => {
     workdir: config.workdir,
     sessionDir: config.sessionDir,
     messages,
-    streamingText,
     isProcessing,
+    streamHandleRef,
     onSubmit: handleSubmit,
     onModelChange: handleModelChange,
     onNewSession: handleNewSession,

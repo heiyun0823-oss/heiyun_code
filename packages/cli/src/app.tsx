@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Box } from "ink";
 import type { SessionNode } from "@heiyun/agent-core";
 import { StatusBar } from "./components/status-bar.js";
@@ -8,6 +8,7 @@ import { LoginPanel } from "./slash-commands/login.js";
 import { ModelPanel } from "./slash-commands/model.js";
 import { ResumePanel } from "./slash-commands/resume.js";
 import { Logo } from "./components/logo.js";
+import type { StreamHandle } from "./main.js";
 
 type SlashMode = "chat" | "login" | "model" | "resume";
 
@@ -17,8 +18,8 @@ interface AppProps {
   workdir: string;
   sessionDir: string;
   messages: SessionNode[];
-  streamingText: string;
   isProcessing: boolean;
+  streamHandleRef: React.MutableRefObject<StreamHandle | null>;
   onSubmit: (input: string) => void;
   onModelChange: (newModel: string) => void;
   onNewSession: () => void;
@@ -31,8 +32,8 @@ export const App: React.FC<AppProps> = React.memo(({
   workdir,
   sessionDir,
   messages,
-  streamingText,
   isProcessing,
+  streamHandleRef,
   onSubmit,
   onModelChange,
   onNewSession,
@@ -40,7 +41,7 @@ export const App: React.FC<AppProps> = React.memo(({
 }) => {
   const [slashMode, setSlashMode] = useState<SlashMode>("chat");
 
-  const handleSubmit = (input: string) => {
+  const handleSubmit = useCallback((input: string) => {
     const trimmed = input.trim();
 
     // 拦截 /command
@@ -63,7 +64,22 @@ export const App: React.FC<AppProps> = React.memo(({
 
     // 其他 / 开头的输入作为普通消息发送
     onSubmit(trimmed);
-  };
+  }, [onSubmit, onNewSession, onResumeSession]);
+
+  const handleModelClose = useCallback((newModel?: string) => {
+    if (newModel) {
+      onModelChange(newModel);
+    }
+    setSlashMode("chat");
+  }, [onModelChange]);
+
+  const handleResumeSelect = useCallback((sessionId: string) => {
+    onResumeSession(sessionId);
+    setSlashMode("chat");
+  }, [onResumeSession]);
+
+  const handleLoginClose = useCallback(() => setSlashMode("chat"), []);
+  const handleResumeClose = useCallback(() => setSlashMode("chat"), []);
 
   return (
     <Box flexDirection="column" padding={0}>
@@ -75,34 +91,24 @@ export const App: React.FC<AppProps> = React.memo(({
 
       {slashMode === "chat" && (
         <Box flexDirection="column">
-          <ChatView messages={messages} streamingText={streamingText} />
+          <ChatView key={sessionId} messages={messages} streamHandleRef={streamHandleRef} />
           <InputBox onSubmit={handleSubmit} disabled={isProcessing} />
         </Box>
       )}
 
       {slashMode === "login" && (
-        <LoginPanel onClose={() => setSlashMode("chat")} />
+        <LoginPanel onClose={handleLoginClose} />
       )}
 
       {slashMode === "model" && (
-        <ModelPanel
-          onClose={(newModel) => {
-            if (newModel) {
-              onModelChange(newModel);
-            }
-            setSlashMode("chat");
-          }}
-        />
+        <ModelPanel onClose={handleModelClose} />
       )}
 
       {slashMode === "resume" && (
         <ResumePanel
           sessionDir={sessionDir}
-          onClose={() => setSlashMode("chat")}
-          onSelect={(sessionId) => {
-            onResumeSession(sessionId);
-            setSlashMode("chat");
-          }}
+          onClose={handleResumeClose}
+          onSelect={handleResumeSelect}
         />
       )}
     </Box>

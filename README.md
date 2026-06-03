@@ -55,7 +55,7 @@ heiyun --help             # 查看帮助
 |------|--------|------|
 | `HEIYUN_CODE_API_BASE` | `https://api.deepseek.com/v1` | API 地址 |
 | `HEIYUN_CODE_API_KEY` | - | API 密钥 |
-| `HEIYUN_CODE_MODEL` | `deepseek-chat` | 模型名称 |
+| `HEIYUN_CODE_MODEL` | `deepseek-v4-flash` | 模型名称 |
 | `HEIYUN_CODE_MAX_ROUNDS` | `50` | 最大工具调用轮次 |
 | `HEIYUN_CODE_TEMPERATURE` | `0.7` | 生成温度 |
 | `HEIYUN_CODE_SESSION_DIR` | `~/.heiyun/sessions` | 会话存储目录 |
