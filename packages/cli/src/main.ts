@@ -13,7 +13,7 @@ const program = new Command();
 program
   .name("heiyun")
   .description("Heiyun Code — 交互式 AI 编码代理 CLI")
-  .version("0.1.0")
+  .version("0.1.2")
   .option("-m, --model <name>", "模型名称")
   .option("-s, --session <id>", "恢复指定会话")
   .option("-l, --list", "列出所有历史会话")

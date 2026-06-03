@@ -1,6 +1,6 @@
 {
   "name": "@heiyun2169/heiyun",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publishConfig": {
     "access": "public"
   },
