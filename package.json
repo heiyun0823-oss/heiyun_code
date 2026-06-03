@@ -11,7 +11,9 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
-    "clean": "rm -rf packages/*/dist"
+    "clean": "rm -rf packages/*/dist",
+    "publish": "npm run build && npm publish -w packages/cli",
+    "publish:dry": "npm run build && npm publish -w packages/cli --dry-run"
   },
   "engines": {
     "node": ">=20"

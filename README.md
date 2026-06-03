@@ -1,25 +1,29 @@
 # Heiyun Code
 
-交互式 AI 编码代理 CLI 工具（MVP）。
+交互式 AI 编码代理 CLI 工具。
+
+Heiyun Code 是一个运行在终端中的 AI 编程助手，可以理解你的自然语言指令并帮你读写文件、执行命令、修改代码。
+
+![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)
+![npm](https://img.shields.io/npm/v/@heiyun2169/heiyun)
+
+## 安装
+
+```bash
+npm install -g @heiyun2169/heiyun
+```
 
 ## 快速开始
 
 ```bash
-# 安装依赖
-npm install
+# 设置 API 密钥（以 DeepSeek 为例）
+export HEIYUN_CODE_API_KEY=your-api-key
 
-# 构建
-npm run build
-
-# 设置 API 密钥
-export HEIYUN_CODE_API_KEY=your-deepseek-api-key
-
-# 启动
-node packages/cli/dist/main.js
-
-# 或通过 bin
-npx heiyun
+# 启动交互会话
+heiyun
 ```
+
+启动后，你就可以用自然语言向 Heiyun 描述你的需求了。
 
 ## 使用
 
@@ -56,11 +60,29 @@ heiyun --help             # 查看帮助
 | `HEIYUN_CODE_TEMPERATURE` | `0.7` | 生成温度 |
 | `HEIYUN_CODE_SESSION_DIR` | `~/.heiyun/sessions` | 会话存储目录 |
 
-## 架构
+## 开发者
 
+本项目是 npm workspaces 单仓库，包含 4 个包：
+
+```text
+@heiyun/ai           → LLM 通信层
+@heiyun/tools        → 文件系统与 Shell 工具
+@heiyun/agent-core   → Agent 循环与会话管理
+@heiyun/cli          → CLI 入口与 TUI
 ```
-@heiyun/ai              → LLM 通信抽象层
-@heiyun/tools           → 四个原语工具 (read/write/edit/bash)
-@heiyun/agent-core      → Agent Loop + Session + ToolRegistry
-@heiyun/cli             → CLI 入口 + ink TUI
+
+本地开发：
+
+```bash
+git clone <repo>
+cd heiyun-code
+npm install
+npm run build
+# 本地测试
+npm link -w packages/cli
+heiyun
 ```
+
+## License
+
+MIT

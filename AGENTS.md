@@ -212,6 +212,50 @@ Every filesystem tool runs paths through `resolveSafePath()` which:
 | cli | `config.test.ts` | 5 (defaults, CLI, env, CLI>env, settings>all) |
 | cli | `settings.test.ts` | 6 (load, save, path, registry, fetchModels) |
 
+## npm 发布
+
+### 发布命令
+
+```bash
+# 构建并发布
+npm run publish
+
+# 先试运行，检查发布内容
+npm run publish:dry
+```
+
+### 版本管理
+
+```bash
+# 手动 bump 版本
+npm version patch -w packages/cli   # 0.1.0 → 0.1.1
+npm version minor -w packages/cli   # 0.1.1 → 0.2.0
+npm version major -w packages/cli   # 0.2.0 → 1.0.0
+```
+
+### 发布内容
+
+`packages/cli/package.json` 中 `files` 字段定义了发布内容：
+- `dist/` — 构建产物（tsup 打包，包含 `@heiyun/*` 内部包代码）
+- `bin/` — CLI 入口
+- `README.md`
+
+### 本地测试发布效果
+
+```bash
+npm run build
+npm link -w packages/cli
+heiyun                    # 模拟用户安装后的体验
+npm unlink -w packages/cli
+```
+
+### 重要须知
+
+- `@heiyun/*` 内部包在 `devDependencies` 中，发布后用户不会安装它们
+- `ink`、`react`、`commander`、`ink-text-input` 在 `dependencies` 中，安装时会自动下载
+- npm 包名为 `@heiyun2169/heiyun`，需以 `@heiyun2169` 身份登录 npm 才能发布
+- 使用 `publish:dry` 可以预览发布内容而不会真正上传
+
 ###
 每次改动完帮我提交git
 ###
