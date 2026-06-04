@@ -7,13 +7,14 @@ import { App } from "./app.jsx";
 import { Session, ToolRegistry, agentLoop, Logger, ContextManager, TokenCounter } from "@heiyun/agent-core";
 import { OpenAIProvider } from "@heiyun/ai";
 import type { SessionNode, ContextManagerConfig } from "@heiyun/agent-core";
+import { version } from "../package.json";
 
 const program = new Command();
 
 program
   .name("heiyun")
   .description("Heiyun Code — 交互式 AI 编码代理 CLI")
-  .version("0.1.2")
+  .version(version)
   .option("-m, --model <name>", "模型名称")
   .option("-s, --session <id>", "恢复指定会话")
   .option("-l, --list", "列出所有历史会话")
@@ -222,6 +223,7 @@ const TuiWrapper: React.FC = () => {
   }, []);
 
   return React.createElement(App, {
+    version,
     sessionId: session.id,
     model: currentModel,
     workdir: config.workdir,

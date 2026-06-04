@@ -14,6 +14,7 @@ import type { StreamHandle } from "./main.js";
 type SlashMode = "chat" | "login" | "model" | "resume" | "compact";
 
 interface AppProps {
+  version: string;
   sessionId: string;
   model: string;
   workdir: string;
@@ -29,6 +30,7 @@ interface AppProps {
 }
 
 export const App: React.FC<AppProps> = React.memo(({
+  version,
   sessionId,
   model,
   workdir,
@@ -93,7 +95,7 @@ export const App: React.FC<AppProps> = React.memo(({
     <Box flexDirection="column" padding={0}>
       <Box flexDirection="row">
         <Logo animate={isProcessing} />
-        <StatusBar sessionId={sessionId} model={model} workdir={workdir} />
+        <StatusBar version={version} sessionId={sessionId} model={model} workdir={workdir} />
       </Box>
 
 
