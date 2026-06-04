@@ -104,6 +104,33 @@ function renderMessage(m: SessionNode, _index: number): React.ReactElement | nul
     );
   }
 
+if (m.role === "summary") {
+    return (
+      <Box
+        flexDirection="column"
+        marginY={1}
+        borderStyle="single"
+        borderColor="#555"
+        paddingX={1}
+      >
+        <Box paddingX={1}>
+          <Text color="#888" italic>
+            🔒 自动压缩 — 上下文摘要
+          </Text>
+        </Box>
+        <Box paddingX={1} marginTop={1}>
+          <Text color="#666" italic>
+            {m.content
+              ? m.content.length > 500
+                ? m.content.slice(0, 500) + "..."
+                : m.content
+              : "(摘要为空)"}
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
+
   return null;
 }
 

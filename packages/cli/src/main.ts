@@ -4,9 +4,9 @@ import { render } from "ink";
 import React, { useState, useCallback, useRef } from "react";
 import { loadConfig } from "./config.js";
 import { App } from "./app.jsx";
-import { Session, ToolRegistry, agentLoop, Logger } from "@heiyun/agent-core";
+import { Session, ToolRegistry, agentLoop, Logger, ContextManager, TokenCounter } from "@heiyun/agent-core";
 import { OpenAIProvider } from "@heiyun/ai";
-import type { SessionNode } from "@heiyun/agent-core";
+import type { SessionNode, ContextManagerConfig } from "@heiyun/agent-core";
 
 const program = new Command();
 
@@ -73,6 +73,24 @@ if (config.sessionId) {
   logger.info("新建会话", { sessionId: session.id, workdir: config.workdir, model: config.model });
 }
 
+// ── ContextManager 初始化 ──────────────────────────────────────────
+const tokenCounter = new TokenCounter(config.model);
+
+const contextWindowSize = parseInt(
+  process.env.HEIYUN_CODE_CONTEXT_WINDOW ?? "128000",
+  10
+);
+
+const ctxConfig: ContextManagerConfig = {
+  maxContextTokens: contextWindowSize,
+  windowRatio: 0.6,
+  compressThresholdRatio: 0.9,
+  reserveOutputTokens: 4096,
+  systemPromptTokens: 500,
+};
+
+const contextManager = new ContextManager(ctxConfig, tokenCounter, provider);
+
 // Throttle streaming text updates to ~30fps to reduce full-tree re-renders
 const STREAM_THROTTLE_MS = 33;
 
@@ -91,6 +109,10 @@ const TuiWrapper: React.FC = () => {
     [...session.getMessages()]
   );
   const [isProcessing, setIsProcessing] = useState(false);
+  const [compactStatus, setCompactStatus] = useState<string | null>(null);
+
+  // 将 session 暴露到 globalThis，供 CompactPanel 访问
+  (globalThis as any).__heiyunSession = session;
 
   // Ref-based streaming: ChatView registers its imperative handle here.
   // When TuiWrapper calls streamHandleRef.current.append(text), only ChatView
@@ -134,8 +156,22 @@ const TuiWrapper: React.FC = () => {
               streamHandleRef.current?.flush();
               setMessages([...session.getMessages()]);
             },
+            onCompactStart: () => {
+              setCompactStatus("正在压缩上下文...");
+            },
+            onCompact: (summary: string) => {
+              logger.info("上下文自动压缩完成", {
+                sessionId: session.id,
+                summaryLen: summary.length,
+              });
+              setCompactStatus(null);
+              // 刷新消息列表以显示 summary
+              streamHandleRef.current?.flush();
+              setMessages([...session.getMessages()]);
+            },
           },
-          logger
+          logger,
+          contextManager
         );
       } catch (err) {
         const msg =
@@ -193,6 +229,7 @@ const TuiWrapper: React.FC = () => {
     messages,
     isProcessing,
     streamHandleRef,
+    contextManager,
     onSubmit: handleSubmit,
     onModelChange: handleModelChange,
     onNewSession: handleNewSession,

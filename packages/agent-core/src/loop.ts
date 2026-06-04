@@ -4,11 +4,14 @@ import { Session } from "./session.js";
 import { ToolRegistry } from "./tool-registry.js";
 import { SYSTEM_PROMPT } from "./system-prompt.js";
 import type { Logger } from "./logger.js";
+import type { ContextManager } from "./context-manager.js";
 
 export interface LoopCallbacks {
   onText?: (text: string) => void;
   onToolCall?: (toolCall: ToolCall) => void;
   onToolResult?: (result: { toolCallId: string; output: string; success: boolean }) => void;
+  onCompact?: (summary: string) => void;
+  onCompactStart?: () => void;
 }
 
 function mergeToolCallDelta(
@@ -42,7 +45,8 @@ export async function agentLoop(
   options: LoopOptions,
   workdir: string,
   callbacks?: LoopCallbacks,
-  logger?: Logger
+  logger?: Logger,
+  contextManager?: ContextManager
 ): Promise<string> {
   session.append({ role: "user", content: userInput });
   logger?.info("Agent loop 开始", { sessionId: session.id, workdir });
@@ -53,19 +57,34 @@ export async function agentLoop(
       throw new Error("用户中断");
     }
 
-    const messages = session.getMessages();
+    // ── ContextManager 集成 ──────────────────────────────────
+    let ctxMessages: Message[];
+    if (contextManager) {
+      // 显示压缩中状态
+      if (contextManager.shouldCompress(session)) {
+        callbacks?.onCompactStart?.();
+      }
+      // 使用异步版本：自动检测并压缩
+      ctxMessages = await contextManager.getMessagesAsync(
+        session,
+        callbacks?.onCompact
+      );
+    } else {
+      // 无 ContextManager 时退化为原有行为
+      const messages = session.getMessages();
+      ctxMessages = messages.map((m): Message => ({
+        role: m.role === "summary" ? "system" : (m.role as Message["role"]),
+        content: m.content,
+        ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
+        ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
+      }));
+    }
+
     const req: GenerateRequest = {
       model: options.model,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        ...messages.map(
-          (m): Message => ({
-            role: m.role,
-            content: m.content,
-            ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
-            ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
-          })
-        ),
+        ...ctxMessages,
       ],
       tools: toolRegistry.getDefinitions(),
       max_tokens: options.maxTokens,

@@ -3,7 +3,7 @@ import type { ToolCall } from "@heiyun/ai";
 export interface SessionNode {
   id: string;
   timestamp: string;
-  role: "system" | "user" | "assistant" | "tool";
+  role: "system" | "user" | "assistant" | "tool" | "summary";
   content: string | null;
   tool_calls?: ToolCall[];
   tool_call_id?: string;

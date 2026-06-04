@@ -12,6 +12,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
   { name: "/model", description: "选择模型" },
   { name: "/new", description: "开启新对话" },
   { name: "/resume", description: "恢复历史对话" },
+  { name: "/compact", description: "压缩上下文" },
 ];
 
 interface InputBoxProps {

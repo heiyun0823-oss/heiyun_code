@@ -6,3 +6,6 @@ export { Logger } from "./logger.js";
 export type { LogEntry } from "./logger.js";
 export type { SessionNode, SessionMeta, LoopOptions } from "./types.js";
 export type { LoopCallbacks } from "./loop.js";
+export { ContextManager } from "./context-manager.js";
+export type { ContextManagerConfig, CompactPreview, OnCompactCallback } from "./context-manager.js";
+export { TokenCounter } from "./token-counter.js";

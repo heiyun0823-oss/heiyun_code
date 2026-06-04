@@ -29,6 +29,47 @@ export class Session {
     return this.messages;
   }
 
+  /**
+   * 获取指定索引范围的消息（不含 end 索引对应的消息）
+   */
+  getMessageRange(start: number, end: number): SessionNode[] {
+    return this.messages.slice(start, end);
+  }
+
+  /**
+   * 将 [start, end) 范围内的消息替换为一条 summary 消息。
+   * 采用原子写入策略：先写临时文件，再 rename 替换原文件。
+   */
+  replaceRange(
+    start: number,
+    end: number,
+    summaryNode: Omit<SessionNode, "id" | "timestamp">
+  ): void {
+    // 1. 构建新消息列表
+    const summaryFull: SessionNode = {
+      ...summaryNode,
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+    };
+
+    const newMessages = [
+      ...this.messages.slice(0, start),
+      summaryFull,
+      ...this.messages.slice(end),
+    ];
+
+    // 2. 写入临时文件
+    const tmpPath = this.filePath + ".tmp";
+    const lines = newMessages.map((m) => JSON.stringify(m)).join("\n") + "\n";
+    fs.writeFileSync(tmpPath, lines, "utf-8");
+
+    // 3. 原子替换
+    fs.renameSync(tmpPath, this.filePath);
+
+    // 4. 更新内存
+    this.messages = newMessages;
+  }
+
   static load(filePath: string): Session {
     const session = new Session(path.dirname(filePath));
     session.filePath = filePath;
