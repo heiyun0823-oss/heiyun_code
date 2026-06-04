@@ -1,7 +1,7 @@
 // === Token 计数 ===
 // 封装 js-tiktoken 提供消息级别的 token 计数
 
-import { encodingForModel, getEncoding, type Tiktoken } from "js-tiktoken";
+import { encodingForModel, getEncoding, type Tiktoken, type TiktokenModel } from "js-tiktoken";
 
 export class TokenCounter {
   private encoder: Tiktoken;
@@ -9,7 +9,7 @@ export class TokenCounter {
   constructor(modelName: string) {
     // 尝试精确匹配模型名，fallback 到 cl100k_base（GPT-4/ChatGPT 编码）
     try {
-      this.encoder = encodingForModel(modelName);
+      this.encoder = encodingForModel(modelName as TiktokenModel);
     } catch {
       this.encoder = getEncoding("cl100k_base");
     }
