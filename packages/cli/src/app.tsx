@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Box, Static } from "ink";
+import { Box } from "ink";
 import type { SessionNode, ContextManager } from "@heiyun/agent-core";
 import { StatusBar } from "./components/status-bar.js";
 import { ChatView } from "./components/chat-view.js";
@@ -27,8 +27,6 @@ interface AppProps {
   onModelChange: (newModel: string) => void;
   onNewSession: () => void;
   onResumeSession: (sessionId: string) => void;
-  onShellCommand: (command: string, includeInContext: boolean) => void;
-  shellMessages: SessionNode[];
 }
 
 export const App: React.FC<AppProps> = React.memo(({
@@ -45,28 +43,13 @@ export const App: React.FC<AppProps> = React.memo(({
   onModelChange,
   onNewSession,
   onResumeSession,
-  onShellCommand,
-  shellMessages,
 }) => {
   const [slashMode, setSlashMode] = useState<SlashMode>("chat");
 
   const handleSubmit = useCallback((input: string) => {
     const trimmed = input.trim();
 
-    // ¿πΩÿ !! command
-    if (trimmed.startsWith("!!")) {
-      const cmd = trimmed.slice(2).trim();
-      if (cmd) onShellCommand(cmd, false);
-      return;
-    }
-    // ¿πΩÿ ! command
-    if (trimmed.startsWith("!")) {
-      const cmd = trimmed.slice(1).trim();
-      if (cmd) onShellCommand(cmd, true);
-      return;
-    }
-
-    // ¿πΩÿ /command
+    // Êã¶Êà™ /command
     if (trimmed === "/login") {
       setSlashMode("login");
       return;
@@ -88,9 +71,9 @@ export const App: React.FC<AppProps> = React.memo(({
       return;
     }
 
-    // ∆‰À˚ / ø™Õ∑µƒ ‰»Î◊˜Œ™∆’Õ®œ˚œ¢∑¢ÀÕ
+    // ÂÖ∂‰ªñ / ÂºÄÂ§¥ÁöÑËæìÂÖ•‰Ωú‰∏∫ÊôÆÈÄöÊ∂àÊÅØÂèëÈÄÅ
     onSubmit(trimmed);
-  }, [onSubmit, onNewSession, onResumeSession, onShellCommand]);
+  }, [onSubmit, onNewSession, onResumeSession]);
 
   const handleModelClose = useCallback((newModel?: string) => {
     if (newModel) {
@@ -110,22 +93,15 @@ export const App: React.FC<AppProps> = React.memo(({
 
   return (
     <Box flexDirection="column" padding={0}>
-      {/* Õ∑≤øπÃ∂®«¯”Ú£∫ π”√ Static ”¿æ√–¥»Î£¨≤ª≤Œ”Î÷ÿªÊ */}
-      {slashMode === "chat" && (
-        <Static items={[{ key: "header" }]}>
-          {() => (
-            <Box flexDirection="row">
-              <Logo animate={false} />
-              <StatusBar version={version} sessionId={sessionId} model={model} workdir={workdir} />
-            </Box>
-          )}
-        </Static>
-      )}
+      <Box flexDirection="row">
+        <Logo animate={isProcessing} />
+        <StatusBar version={version} sessionId={sessionId} model={model} workdir={workdir} />
+      </Box>
 
 
       {slashMode === "chat" && (
         <Box flexDirection="column">
-          <ChatView key={sessionId} messages={messages} streamHandleRef={streamHandleRef} shellMessages={shellMessages} />
+          <ChatView key={sessionId} messages={messages} streamHandleRef={streamHandleRef} />
           <InputBox onSubmit={handleSubmit} disabled={isProcessing} />
         </Box>
       )}
