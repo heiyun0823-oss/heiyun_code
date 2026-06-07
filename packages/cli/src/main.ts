@@ -27,7 +27,7 @@ import { Command } from "commander";
 import { render } from "ink";
 import React, { useState, useCallback, useRef } from "react";
 import { loadConfig } from "./config.js";
-import { App } from "./app.jsx";
+import { App } from "./app.js";
 import { Session, ToolRegistry, agentLoop, Logger, ContextManager, TokenCounter } from "@heiyun/agent-core";
 import { OpenAIProvider } from "@heiyun/ai";
 import type { SessionNode, ContextManagerConfig } from "@heiyun/agent-core";

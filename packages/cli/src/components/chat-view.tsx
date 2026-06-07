@@ -9,6 +9,7 @@ const STREAM_THROTTLE_MS = 33;
 interface ChatViewProps {
   messages: SessionNode[];
   streamHandleRef: React.MutableRefObject<StreamHandle | null>;
+  shellMessages?: SessionNode[];
 }
 
 /**
@@ -104,6 +105,17 @@ function renderMessage(m: SessionNode, _index: number): React.ReactElement | nul
     );
   }
 
+if (m.role === "shell") {
+    return (
+      <Box flexDirection="column" marginY={1}>
+        <Text>
+          <Text color="#ccc">$ {m.name ?? "命令"}</Text>
+        </Text>
+        <Text color="#aaa">{m.content}</Text>
+      </Box>
+    );
+  }
+
 if (m.role === "summary") {
     return (
       <Box
@@ -137,6 +149,7 @@ if (m.role === "summary") {
 const ChatViewInner: React.FC<ChatViewProps> = ({
   messages,
   streamHandleRef,
+  shellMessages = [],
 }) => {
   // ── streaming state lives HERE (not in TuiWrapper) ────────────────
   // Only this component re-renders on text updates — App stays still.
@@ -192,8 +205,11 @@ const ChatViewInner: React.FC<ChatViewProps> = ({
   // erased/redrawn — only the interactive area (streaming text + input)
   // participates in the normal render cycle, eliminating flicker.
   const chatMessages = useMemo(
-    () => messages.filter((m) => m.role !== "system"),
-    [messages]
+    () => [
+      ...messages.filter((m) => m.role !== "system"),
+      ...shellMessages,
+    ],
+    [messages, shellMessages]
   );
 
   // ── streaming text (interactive, not static) ─────────────────────

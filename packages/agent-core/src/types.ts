@@ -25,7 +25,7 @@ import type { ToolCall } from "@heiyun/ai";
 export interface SessionNode {
   id: string;                  // UUID 唯一标识
   timestamp: string;           // ISO 8601 时间戳，如 "2026-06-06T12:00:00.000Z"
-  role: "system" | "user" | "assistant" | "tool" | "summary";
+  role: "system" | "user" | "assistant" | "tool" | "summary" | "shell";
   content: string | null;      // 消息文本内容
   tool_calls?: ToolCall[];     // AI 想要调用的工具
   tool_call_id?: string;       // 关联的工具调用 ID

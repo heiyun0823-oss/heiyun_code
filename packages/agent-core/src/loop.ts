@@ -166,7 +166,7 @@ export async function agentLoop(
       // 不使用 ContextManager：直接取全部消息，手动转换格式
       const messages = session.getMessages();
       ctxMessages = messages.map((m): Message => ({
-        role: m.role === "summary" ? "system" : (m.role as Message["role"]),
+        role: m.role === "summary" ? "system" : m.role === "shell" ? "user" : (m.role as Message["role"]),
         content: m.content,
         ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
         ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
