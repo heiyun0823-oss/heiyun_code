@@ -8,10 +8,11 @@ import { LoginPanel } from "./slash-commands/login.js";
 import { ModelPanel } from "./slash-commands/model.js";
 import { ResumePanel } from "./slash-commands/resume.js";
 import { CompactPanel } from "./slash-commands/compact.js";
+import { SettingsPanel } from "./slash-commands/settings.js";
 import { Logo } from "./components/logo.js";
 import type { StreamHandle } from "./main.js";
 
-type SlashMode = "chat" | "login" | "model" | "resume" | "compact";
+type SlashMode = "chat" | "login" | "model" | "resume" | "compact" | "settings";
 
 interface AppProps {
   version: string;
@@ -87,6 +88,10 @@ export const App: React.FC<AppProps> = React.memo(({
       setSlashMode("compact");
       return;
     }
+    if (trimmed === "/settings") {
+      setSlashMode("settings");
+      return;
+    }
 
     // 其他 / 开头的输入作为普通消息发送
     onSubmit(trimmed);
@@ -107,11 +112,13 @@ export const App: React.FC<AppProps> = React.memo(({
   const handleLoginClose = useCallback(() => setSlashMode("chat"), []);
   const handleResumeClose = useCallback(() => setSlashMode("chat"), []);
   const handleCompactClose = useCallback(() => setSlashMode("chat"), []);
+  const handleSettingsClose = useCallback(() => setSlashMode("chat"), []);
 
   return (
     <Box flexDirection="column" padding={0}>
       <Box flexDirection="row">
-        <Logo animate={isProcessing} />
+        {/* Logo 只在启动时（尚无消息时）显示，开始对话后自动隐藏 */}
+        {messages.length === 0 && <Logo animate={isProcessing} />}
         <StatusBar version={version} sessionId={sessionId} model={model} workdir={workdir} />
       </Box>
 
@@ -144,6 +151,10 @@ export const App: React.FC<AppProps> = React.memo(({
           contextManager={contextManager}
           onClose={handleCompactClose}
         />
+      )}
+
+      {slashMode === "settings" && (
+        <SettingsPanel onClose={handleSettingsClose} />
       )}
     </Box>
   );

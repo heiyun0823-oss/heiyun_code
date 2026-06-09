@@ -13,6 +13,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
   { name: "/new", description: "开启新对话" },
   { name: "/resume", description: "恢复历史对话" },
   { name: "/compact", description: "压缩上下文" },
+  { name: "/settings", description: "打开设置" },
 ];
 
 interface InputBoxProps {
