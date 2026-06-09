@@ -58,6 +58,7 @@ export const LoginPanel: React.FC<LoginPanelProps> = ({ onClose }) => {
       };
 
       const newSettings: SettingsData = {
+        ...existingSettings,
         providers,
         activeProvider: selectedProvider.id,
         activeModel:
