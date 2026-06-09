@@ -2,6 +2,8 @@ import React, { useMemo, useState, useCallback, useRef, useEffect } from "react"
 import { Text, Box, Static } from "ink";
 import type { SessionNode } from "@heiyun/agent-core";
 import type { StreamHandle } from "../main.js";
+import { loadSettings } from "../settings.js";
+import { getThemeColors, DEFAULT_THEME, type ThemeColors } from "../theme.js";
 
 // ── streaming throttle ──────────────────────────────────────────────
 const STREAM_THROTTLE_MS = 33;
@@ -21,12 +23,12 @@ interface ChatViewProps {
  * used by the Static component. Keys are omitted — Static manages its own
  * element tracking and React keys would interfere with the static content system.
  */
-function renderMessage(m: SessionNode, _index: number): React.ReactElement | null {
+function renderMessage(m: SessionNode, theme: ThemeColors): React.ReactElement | null {
   if (m.role === "user") {
     return (
       <Box marginY={1}>
         <Text>
-          <Text color="#f0c040">🧑 你: </Text>
+          <Text color={theme.userPrefix}>🧑 你: </Text>
           <Text>{m.content}</Text>
         </Text>
       </Box>
@@ -39,7 +41,7 @@ function renderMessage(m: SessionNode, _index: number): React.ReactElement | nul
       <Box flexDirection="column" marginY={1}>
         {m.content && (
           <Text>
-            <Text color="#50c878">🤖 AI: </Text>
+            <Text color={theme.aiPrefix}>🤖 AI: </Text>
             <Text>{m.content}</Text>
           </Text>
         )}
@@ -50,7 +52,7 @@ function renderMessage(m: SessionNode, _index: number): React.ReactElement | nul
               flexDirection="column"
               marginY={1}
               borderStyle="single"
-              borderColor="#333"
+              borderColor={theme.border}
               paddingX={1}
             >
               <Text backgroundColor="#1a3a5c" color="#4fc3f7">
@@ -76,7 +78,7 @@ function renderMessage(m: SessionNode, _index: number): React.ReactElement | nul
         flexDirection="column"
         marginY={1}
         borderStyle="single"
-        borderColor="#333"
+        borderColor={theme.border}
         paddingX={1}
       >
         <Box backgroundColor="#1a3a5c" paddingX={1}>
@@ -122,7 +124,7 @@ if (m.role === "summary") {
         flexDirection="column"
         marginY={1}
         borderStyle="single"
-        borderColor="#555"
+        borderColor={theme.border}
         paddingX={1}
       >
         <Box paddingX={1}>
@@ -151,6 +153,11 @@ const ChatViewInner: React.FC<ChatViewProps> = ({
   streamHandleRef,
   shellMessages = [],
 }) => {
+  const theme = useMemo(() => {
+    const settings = loadSettings();
+    return getThemeColors(settings?.theme ?? DEFAULT_THEME);
+  }, []);
+
   // ── streaming state lives HERE (not in TuiWrapper) ────────────────
   // Only this component re-renders on text updates — App stays still.
   const [streamingText, setStreamingText] = useState("");
@@ -221,7 +228,7 @@ const ChatViewInner: React.FC<ChatViewProps> = ({
     if (lines.length === 1) {
       return (
         <Text>
-          <Text color="#50c878">🤖 AI: </Text>
+          <Text color={theme.aiPrefix}>🤖 AI: </Text>
           <Text>{lines[0]}</Text>
         </Text>
       );
@@ -229,7 +236,7 @@ const ChatViewInner: React.FC<ChatViewProps> = ({
     return (
       <Box flexDirection="column">
         <Text>
-          <Text color="#50c878">🤖 AI: </Text>
+          <Text color={theme.aiPrefix}>🤖 AI: </Text>
           <Text>{lines[0]}</Text>
         </Text>
         {lines.slice(1, -1).map((line, i) => (
@@ -245,7 +252,9 @@ const ChatViewInner: React.FC<ChatViewProps> = ({
       {/* Completed messages: rendered via <Static> so they persist
           outside the interactive render cycle — typing or streaming
           text updates will no longer erase and redraw them. */}
-      <Static items={chatMessages}>{renderMessage}</Static>
+      <Static items={chatMessages}>
+        {(m, index) => renderMessage(m, theme)}
+      </Static>
       {streamingEl}
     </Box>
   );
