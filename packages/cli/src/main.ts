@@ -32,6 +32,23 @@ import { Session, ToolRegistry, agentLoop, Logger, ContextManager, TokenCounter 
 import { OpenAIProvider } from "@heiyun/ai";
 import type { SessionNode, ContextManagerConfig } from "@heiyun/agent-core";
 import { version } from "../package.json";
+import { spawn } from "node:child_process";
+import { platform } from "node:os";
+
+/**
+ * 解码子进程输出。
+ * Windows cmd.exe 使用系统活动代码页（中文系统为 GBK/CP936）输出，
+ * Node.js 默认以 UTF-8 解码会导致乱码。这里在 Windows 上优先用 GBK 解码。
+ */
+function decodeOutput(chunk: Buffer, isWindows: boolean): string {
+  if (!isWindows) return chunk.toString("utf8");
+  try {
+    return new TextDecoder("gbk").decode(chunk);
+  } catch {
+    // GBK 解码失败时回退到 UTF-8
+    return chunk.toString("utf8");
+  }
+}
 
 // === 命令行参数定义 ===
 
@@ -170,6 +187,7 @@ const TuiWrapper: React.FC = () => {
     [...session.getMessages()]   // ...展开运算符：创建数组副本，避免直接修改
   );
   const [isProcessing, setIsProcessing] = useState(false);              // 是否正在处理中
+  const [shellMessages, setShellMessages] = useState<SessionNode[]>([]); // shell 命令执行结果
   const [compactStatus, setCompactStatus] = useState<string | null>(null); // 压缩状态文本
 
   // 将 session 暴露到全局对象（globalThis），供 CompactPanel 等面板组件访问
@@ -181,6 +199,59 @@ const TuiWrapper: React.FC = () => {
   // 和 useState 的区别：修改 .current 不会触发重新渲染。
   // 这里用来存储 ChatView 注册的 StreamHandle，实现高效的流式文本更新。
   const streamHandleRef = useRef<StreamHandle | null>(null);
+
+  const runShellCommand = useCallback(
+    async (
+      command: string,
+      signal: AbortSignal
+    ): Promise<{ stdout: string; stderr: string; exitCode: number }> => {
+      const isWindows = platform() === "win32";
+      const shell = isWindows ? "cmd.exe" : "/bin/bash";
+      const shellArgs = isWindows ? ["/c", command] : ["-c", command];
+
+      return new Promise((resolve, reject) => {
+        // Windows 上用 encoding: 'buffer' 获取原始字节，然后用 GBK 解码
+        const spawnOpts: Record<string, any> = {
+          cwd: config.workdir,
+          env: process.env,
+          stdio: ["pipe", "pipe", "pipe"],
+          signal,
+        };
+        if (isWindows) {
+          spawnOpts.encoding = "buffer";
+        }
+
+        const child = spawn(shell, shellArgs, spawnOpts);
+
+        let stdout = "";
+        let stderr = "";
+
+        const timer = setTimeout(() => {
+          child.kill("SIGKILL");
+          reject(new Error("命令执行超时 (30s)"));
+        }, 30_000);
+
+        child.stdout?.on("data", (chunk: any) => {
+          stdout += isWindows ? decodeOutput(chunk as Buffer, true) : String(chunk);
+        });
+
+        child.stderr?.on("data", (chunk: any) => {
+          stderr += isWindows ? decodeOutput(chunk as Buffer, true) : String(chunk);
+        });
+
+        child.on("close", (exitCode) => {
+          clearTimeout(timer);
+          resolve({ stdout, stderr, exitCode: exitCode ?? -1 });
+        });
+
+        child.on("error", (err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+      });
+    },
+    [config.workdir]
+  );
 
   // === useCallback：缓存函数，避免不必要的子组件重渲染 ===
   // 依赖数组 [currentModel, config, provider, toolRegistry] 中的值变化时，
@@ -286,6 +357,71 @@ const TuiWrapper: React.FC = () => {
     [currentModel, config, provider, toolRegistry]  // 依赖数组
   );
 
+  const handleShellCommand = useCallback(
+    async (command: string, includeInContext: boolean) => {
+      setIsProcessing(true);
+      const ac = new AbortController();
+
+      try {
+        const { stdout, stderr, exitCode } = await runShellCommand(
+          command,
+          ac.signal
+        );
+
+        const output = stderr
+          ? `stdout:\n${stdout}\n\nstderr:\n${stderr}\n\nexit code: ${exitCode}`
+          : `${stdout}\n\nexit code: ${exitCode}`;
+
+        if (includeInContext) {
+          // 计入上下文：写入 session
+          session.append({
+            role: "user",
+            content: `执行命令: ${command}`,
+          });
+          session.append({
+            role: "shell",
+            content: output,
+            name: command,
+          });
+          setMessages([...session.getMessages()]);
+        } else {
+          // 不计入上下文：仅 UI 显示
+          const node: SessionNode = {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            role: "shell",
+            content: output,
+            name: command,
+          };
+          setShellMessages((prev) => [...prev, node]);
+        }
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+
+        if (includeInContext) {
+          session.append({
+            role: "shell",
+            content: `[错误] ${errMsg}`,
+            name: command,
+          });
+          setMessages([...session.getMessages()]);
+        } else {
+          const node: SessionNode = {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            role: "shell",
+            content: `[错误] ${errMsg}`,
+            name: command,
+          };
+          setShellMessages((prev) => [...prev, node]);
+        }
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [runShellCommand]
+  );
+
   /** 创建新会话 */
   const handleNewSession = useCallback(() => {
     session = new Session(config.sessionDir);
@@ -330,6 +466,8 @@ const TuiWrapper: React.FC = () => {
     onModelChange: handleModelChange,
     onNewSession: handleNewSession,
     onResumeSession: handleResumeSession,
+    onShellCommand: handleShellCommand,
+    shellMessages: shellMessages,
   });
 };
 

@@ -25,6 +25,16 @@ heiyun
 
 启动后，你就可以用自然语言向 Heiyun 描述你的需求了。
 
+## 功能特性
+
+- **智能文件操作**：读取、写入、编辑文件，支持精确的文本替换
+- **Shell 命令执行**：运行任意 Shell 命令，实时显示输出结果
+- **上下文管理**：自动滑动窗口和 LLM 摘要压缩，防止超出上下文限制
+- **流式渲染优化**：使用 Static 组件消除闪烁，提供流畅的交互体验
+- **会话持久化**：JSONL 格式保存会话历史，支持恢复和继续对话
+- **调试日志**：详细的 JSONL 日志记录，便于排查问题
+- **个性化界面**：水墨像素风 Logo 和呼吸动画，状态栏显示版本信息
+
 ## 使用
 
 ```bash
@@ -46,8 +56,20 @@ heiyun --help             # 查看帮助
 | `/model` | 选择模型 |
 | `/new` | 开启新对话 |
 | `/resume` | 恢复历史对话 |
+| `/compact` | 手动触发上下文压缩（生成对话摘要） |
 
 使用 ↑↓ 键浏览，Tab 键自动补全，Enter 键执行。
+
+### Shell 命令输出
+
+当 AI 调用 `bash` 工具执行 Shell 命令时，命令的输出会直接显示在聊天界面中，格式如下：
+
+```
+$ 命令内容
+命令输出结果
+```
+
+这让你能实时看到命令执行的结果，无需额外操作。
 
 ## 环境变量
 
@@ -55,7 +77,7 @@ heiyun --help             # 查看帮助
 |------|--------|------|
 | `HEIYUN_CODE_API_BASE` | `https://api.deepseek.com/v1` | API 地址 |
 | `HEIYUN_CODE_API_KEY` | - | API 密钥 |
-| `HEIYUN_CODE_MODEL` | `deepseek-v4-flash` | 模型名称 |
+| `HEIYUN_CODE_MODEL` | `deepseek-chat` | 模型名称 |
 | `HEIYUN_CODE_MAX_ROUNDS` | `50` | 最大工具调用轮次 |
 | `HEIYUN_CODE_TEMPERATURE` | `0.7` | 生成温度 |
 | `HEIYUN_CODE_SESSION_DIR` | `~/.heiyun/sessions` | 会话存储目录 |
@@ -82,6 +104,16 @@ npm run build
 npm link -w packages/cli
 heiyun
 ```
+
+### 调试日志
+
+Heiyun Code 会自动生成 JSONL 格式的调试日志，记录所有工具调用过程：
+
+- **日志位置**：`~/.heiyun/logs/heiyun-YYYYMMDD-HHmmss.log`
+- **日志内容**：工具调用参数、执行结果、耗时、错误信息等
+- **用途**：排查问题、分析 AI 行为、优化提示词
+
+日志文件是只追加的，不会覆盖历史记录。
 
 ## License
 

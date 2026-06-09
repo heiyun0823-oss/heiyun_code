@@ -23,6 +23,21 @@ import type { ToolResult } from "@heiyun/ai";
 import { platform } from "node:os";
 
 /**
+ * 解码子进程输出。
+ * Windows cmd.exe 使用系统活动代码页（中文系统为 GBK/CP936）输出，
+ * Node.js 默认以 UTF-8 解码会导致乱码。这里在 Windows 上优先用 GBK 解码。
+ */
+function decodeOutput(chunk: Buffer, isWindows: boolean): string {
+  if (!isWindows) return chunk.toString("utf8");
+  try {
+    return new TextDecoder("gbk").decode(chunk);
+  } catch {
+    // GBK 解码失败时回退到 UTF-8
+    return chunk.toString("utf8");
+  }
+}
+
+/**
  * bash 工具定义
  * command 是必填参数，workdir 可选
  */
@@ -131,12 +146,20 @@ export async function executeBash(
       // env：环境变量（继承当前进程的所有环境变量）
       // stdio: ["pipe", "pipe", "pipe"] = stdin/stdout/stderr 都用管道
       // signal：传递中断信号给子进程
-      const child = spawn(shell, shellArgs, {
+      // Windows 上用 encoding: 'buffer' 获取原始字节，
+      // 然后用 GBK 解码（cmd.exe 输出编码为系统活动代码页）。
+      // Linux/macOS 保持默认 utf8。
+      const spawnOpts: Record<string, any> = {
         cwd: workdir,
         env: process.env,
         stdio: ["pipe", "pipe", "pipe"],
         signal: ctx.signal,
-      });
+      };
+      if (isWindows) {
+        spawnOpts.encoding = "buffer";
+      }
+
+      const child = spawn(shell, shellArgs, spawnOpts);
 
       // 缓冲区：用于收集子进程的所有输出
       let stdout = "";
@@ -153,13 +176,12 @@ export async function executeBash(
       // --- 监听数据事件 ---
       // 子进程的 stdout 是 ReadableStream，通过 .on("data", callback) 监听
       // 每当子进程输出一段数据，callback 就会被调用
-      // chunk 是 Buffer 类型（二进制数据），.toString() 转为字符串
-      child.stdout?.on("data", (chunk: Buffer) => {
-        stdout += chunk.toString();
+      child.stdout?.on("data", (chunk: any) => {
+        stdout += isWindows ? decodeOutput(chunk as Buffer, true) : String(chunk);
       });
 
-      child.stderr?.on("data", (chunk: Buffer) => {
-        stderr += chunk.toString();
+      child.stderr?.on("data", (chunk: any) => {
+        stderr += isWindows ? decodeOutput(chunk as Buffer, true) : String(chunk);
       });
 
       // --- 进程结束事件 ---

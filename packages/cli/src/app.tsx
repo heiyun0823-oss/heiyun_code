@@ -27,6 +27,8 @@ interface AppProps {
   onModelChange: (newModel: string) => void;
   onNewSession: () => void;
   onResumeSession: (sessionId: string) => void;
+  onShellCommand: (command: string, includeInContext: boolean) => void;
+  shellMessages: SessionNode[];
 }
 
 export const App: React.FC<AppProps> = React.memo(({
@@ -43,11 +45,26 @@ export const App: React.FC<AppProps> = React.memo(({
   onModelChange,
   onNewSession,
   onResumeSession,
+  onShellCommand,
+  shellMessages,
 }) => {
   const [slashMode, setSlashMode] = useState<SlashMode>("chat");
 
   const handleSubmit = useCallback((input: string) => {
     const trimmed = input.trim();
+
+    // 拦截 !! command
+    if (trimmed.startsWith("!!")) {
+      const cmd = trimmed.slice(2).trim();
+      if (cmd) onShellCommand(cmd, false);
+      return;
+    }
+    // 拦截 ! command
+    if (trimmed.startsWith("!")) {
+      const cmd = trimmed.slice(1).trim();
+      if (cmd) onShellCommand(cmd, true);
+      return;
+    }
 
     // 拦截 /command
     if (trimmed === "/login") {
@@ -73,7 +90,7 @@ export const App: React.FC<AppProps> = React.memo(({
 
     // 其他 / 开头的输入作为普通消息发送
     onSubmit(trimmed);
-  }, [onSubmit, onNewSession, onResumeSession]);
+  }, [onSubmit, onNewSession, onResumeSession, onShellCommand]);
 
   const handleModelClose = useCallback((newModel?: string) => {
     if (newModel) {
@@ -101,7 +118,7 @@ export const App: React.FC<AppProps> = React.memo(({
 
       {slashMode === "chat" && (
         <Box flexDirection="column">
-          <ChatView key={sessionId} messages={messages} streamHandleRef={streamHandleRef} />
+          <ChatView key={sessionId} messages={messages} streamHandleRef={streamHandleRef} shellMessages={shellMessages} />
           <InputBox onSubmit={handleSubmit} disabled={isProcessing} />
         </Box>
       )}
