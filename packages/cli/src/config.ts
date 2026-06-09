@@ -104,16 +104,21 @@ export function loadConfig(cliArgs: {
       process.env.HEIYUN_CODE_MODEL ??
       "",
 
-    // 最大轮次：CLI 参数优先级最高
-    // parseInt(str, 10) 将字符串转为整数（10 表示十进制）
-    maxRounds: cliArgs.maxRounds
-      ? parseInt(cliArgs.maxRounds, 10)
-      : parseInt(process.env.HEIYUN_CODE_MAX_ROUNDS ?? "50", 10),
+    // 最大轮次：settings.json > CLI 参数 > 环境变量 > 默认值
+    maxRounds: (() => {
+      if (settings?.maxRounds != null) return settings.maxRounds;
+      if (cliArgs.maxRounds) return parseInt(cliArgs.maxRounds, 10);
+      if (process.env.HEIYUN_CODE_MAX_ROUNDS) return parseInt(process.env.HEIYUN_CODE_MAX_ROUNDS, 10);
+      return 50;
+    })(),
 
-    // 温度：CLI 参数优先级最高
-    temperature: cliArgs.temperature
-      ? parseFloat(cliArgs.temperature)    // parseFloat 转为浮点数
-      : parseFloat(process.env.HEIYUN_CODE_TEMPERATURE ?? "0.7"),
+    // 温度：settings.json > CLI 参数 > 环境变量 > 默认值
+    temperature: (() => {
+      if (settings?.temperature != null) return settings.temperature;
+      if (cliArgs.temperature) return parseFloat(cliArgs.temperature);
+      if (process.env.HEIYUN_CODE_TEMPERATURE) return parseFloat(process.env.HEIYUN_CODE_TEMPERATURE);
+      return 0.7;
+    })(),
 
     // 会话目录
     sessionDir: expandHome(
