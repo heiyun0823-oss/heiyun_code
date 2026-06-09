@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Text, Box } from "ink";
+import { loadSettings } from "../settings.js";
+import { getThemeColors } from "../theme.js";
 
 interface StatusBarProps {
   version: string;
@@ -14,11 +16,16 @@ export const StatusBar = React.memo<StatusBarProps>(({
   model,
   workdir,
 }) => {
+  const theme = useMemo(() => {
+    const settings = loadSettings();
+    return getThemeColors(settings?.theme ?? "dark");
+  }, []);
+
   const shortId = sessionId.slice(0, 8);
   return (
     <Box flexDirection="column" marginTop={2} marginLeft={2}>
       <Text>
-        <Text color="#c0392b" bold>Heiyun Code</Text>
+        <Text color={theme.primary} bold>Heiyun Code</Text>
         <Text color="#999"> {"⚡"} v{version}</Text>
       </Text>
       <Text color="#888">会话: {shortId}</Text>
