@@ -34,6 +34,9 @@ export interface SettingsData {
   providers: Record<string, ProviderConfig>;  // 服务商列表（名称 → 配置）
   activeProvider: string | null;               // 当前使用的服务商
   activeModel: string | null;                  // 当前使用的模型
+  temperature?: number;                        // 采样温度（0-2）
+  maxRounds?: number;                          // 最大 Agent 轮次
+  theme?: string;                              // UI 主题
 }
 
 /** 模型信息（用于 /model 命令的列表展示） */

@@ -105,4 +105,31 @@ describe("settings", () => {
       assert.equal(fetchModels.length, 4); // 3 required params + 1 optional (signal)
     });
   });
+
+  describe("SettingsData 新字段", () => {
+    it("新字段全部可选，旧数据结构仍然有效", () => {
+      const oldData: SettingsData = {
+        providers: { deepseek: { apiBase: "https://api.deepseek.com/v1", apiKey: "sk-test" } },
+        activeProvider: "deepseek",
+        activeModel: "deepseek-chat",
+      };
+      assert.equal(oldData.temperature, undefined);
+      assert.equal(oldData.maxRounds, undefined);
+      assert.equal(oldData.theme, undefined);
+    });
+
+    it("新字段可以正常赋值", () => {
+      const data: SettingsData = {
+        providers: {},
+        activeProvider: null,
+        activeModel: null,
+        temperature: 0.5,
+        maxRounds: 30,
+        theme: "cyber",
+      };
+      assert.equal(data.temperature, 0.5);
+      assert.equal(data.maxRounds, 30);
+      assert.equal(data.theme, "cyber");
+    });
+  });
 });
