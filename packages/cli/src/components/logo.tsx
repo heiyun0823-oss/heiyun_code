@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Text, Box } from "ink";
+import { loadSettings } from "../settings.js";
+import { getThemeColors, DEFAULT_THEME } from "../theme.js";
 
 // ============================================================================
 // 像素网格 (21×13): 0=空 1=淡墨 2=中墨 3=浓墨 4=血墨
@@ -74,13 +76,14 @@ function lerpColor(a: string, b: string, t: number): string {
 }
 
 /** 计算 depth=4 像素在给定呼吸相位下的暗红颜色 */
-function crimsonColor(breathPhase: number): string {
+function crimsonColor(breathPhase: number, baseColor?: string): string {
+  const base = baseColor ?? CRIMSON_BASE;
   if (breathPhase > 0.85) {
     // 呼吸顶点：短暂高亮
-    return lerpColor(CRIMSON_BASE, CRIMSON_PEAK, (breathPhase - 0.85) / 0.15);
+    return lerpColor(base, CRIMSON_PEAK, (breathPhase - 0.85) / 0.15);
   }
   // 正常呼吸：暗部 ↔ 基准
-  return lerpColor(CRIMSON_DARK, CRIMSON_BASE, breathPhase / 0.85);
+  return lerpColor(CRIMSON_DARK, base, breathPhase / 0.85);
 }
 
 // ============================================================================
@@ -94,12 +97,13 @@ function crimsonColor(breathPhase: number): string {
 export function getPixelColor(
   row: number,
   col: number,
-  breathPhase: number
+  breathPhase: number,
+  primaryColor?: string
 ): string | null {
   const depth = CLOUD_SHAPE[row]?.[col];
   if (depth === undefined || depth === 0) return null;
 
-  if (depth === 4) return crimsonColor(breathPhase);
+  if (depth === 4) return crimsonColor(breathPhase, primaryColor);
 
   return INK_COLORS[depth] ?? null;
 }
@@ -115,6 +119,11 @@ interface LogoProps {
 
 export const Logo = React.memo<LogoProps>(({ speed = 200, animate = true }) => {
   const [elapsed, setElapsed] = useState(0);
+
+  const primaryColor = useMemo(() => {
+    const settings = loadSettings();
+    return getThemeColors(settings?.theme ?? DEFAULT_THEME).primary;
+  }, []);
 
   useEffect(() => {
     if (!animate) return;
@@ -136,7 +145,7 @@ export const Logo = React.memo<LogoProps>(({ speed = 200, animate = true }) => {
                 <Text key={colIdx}>{"  "}</Text>
               );
             }
-            const color = getPixelColor(rowIdx, colIdx, breathPhase);
+            const color = getPixelColor(rowIdx, colIdx, breathPhase, primaryColor);
             return (
               <Text key={colIdx} color={color ?? undefined}>
                 {"██"}
